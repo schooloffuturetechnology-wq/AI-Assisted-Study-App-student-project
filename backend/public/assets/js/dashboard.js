@@ -20,6 +20,14 @@ function showAlert(message, type = "danger") {
   alertBox.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
 }
 
+async function parseJsonResponse(response) {
+  try {
+    return await response.json();
+  } catch (error) {
+    return {};
+  }
+}
+
 function getStoredResources() {
   const raw = localStorage.getItem(RESOURCE_STORAGE_KEY);
   if (!raw) return [];
@@ -457,7 +465,12 @@ async function submitQuestion(event) {
       body: JSON.stringify({ question, subject })
     });
 
-    const result = await response.json();
+    const result = await parseJsonResponse(response);
+
+    if (response.status === 401) {
+      logout();
+      return;
+    }
 
     if (!response.ok) {
       answerBox.textContent = "Your AI-generated explanation will appear here after you submit a question.";
@@ -469,7 +482,7 @@ async function submitQuestion(event) {
     showAlert("Answer generated and saved successfully.", "success");
   } catch (error) {
     answerBox.textContent = "Your AI-generated explanation will appear here after you submit a question.";
-    showAlert("Cannot connect to the backend server.");
+    showAlert("Cannot connect to the server. Please try again.");
   }
 }
 

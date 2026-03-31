@@ -23,6 +23,7 @@ async function askQuestion(req, res) {
       data: savedHistory
     });
   } catch (error) {
+    console.error("[study] askQuestion failed:", error.message);
     res.status(500).json({ message: "Could not process the study question." });
   }
 }
@@ -36,6 +37,7 @@ async function getHistory(req, res) {
       data: history
     });
   } catch (error) {
+    console.error("[study] getHistory failed:", error.message);
     res.status(500).json({ message: "Could not fetch study history." });
   }
 }

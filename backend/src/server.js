@@ -6,10 +6,10 @@ const PORT = process.env.PORT || 5000;
 connectDB()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`[server] Server running on port ${PORT}`);
     });
   })
   .catch((error) => {
-    console.error("Failed to start server:", error.message);
+    console.error("[server] Failed to start server:", error.message);
     process.exit(1);
   });

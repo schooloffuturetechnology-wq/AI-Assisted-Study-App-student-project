@@ -49,8 +49,9 @@ Set the required values in `.env`:
 
 - `MONGODB_URI`
 - `JWT_SECRET`
-- `USE_MEMORY_DB=false` if you want MongoDB Atlas
-- `GEMINI_API_KEY` if you want live Gemini responses
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL=gemini-2.5-flash`
+- `USE_MEMORY_DB=false`
 
 Start the app:
 
@@ -64,7 +65,7 @@ Open:
 
 ## Render Deployment
 
-This repo is ready for Render using the root [render.yaml](c:/Users/Lenovo/OneDrive/Desktop/TechUp/A_school%20of%20future%20technology/Akshat/render.yaml).
+This repo is ready for Render using the root `render.yaml`.
 
 ### Render settings
 
@@ -77,14 +78,9 @@ This repo is ready for Render using the root [render.yaml](c:/Users/Lenovo/OneDr
 
 - `MONGODB_URI`
 - `JWT_SECRET`
-- `USE_MEMORY_DB=false`
-
-Optional:
-
 - `GEMINI_API_KEY`
 - `GEMINI_MODEL=gemini-2.5-flash`
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL`
+- `USE_MEMORY_DB=false`
 
 ### Health check
 

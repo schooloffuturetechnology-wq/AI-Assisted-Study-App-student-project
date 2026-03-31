@@ -10,6 +10,14 @@ function saveAuthData(data) {
   localStorage.setItem("user", JSON.stringify(data.user));
 }
 
+async function parseJsonResponse(response) {
+  try {
+    return await response.json();
+  } catch (error) {
+    return {};
+  }
+}
+
 async function handleAuthSubmit(event, endpoint) {
   event.preventDefault();
 
@@ -34,7 +42,7 @@ async function handleAuthSubmit(event, endpoint) {
       body: JSON.stringify(payload)
     });
 
-    const result = await response.json();
+    const result = await parseJsonResponse(response);
 
     if (!response.ok) {
       showAlert(result.message || "Authentication failed.");
@@ -44,7 +52,7 @@ async function handleAuthSubmit(event, endpoint) {
     saveAuthData(result);
     window.location.href = "dashboard.html";
   } catch (error) {
-    showAlert("Cannot connect to the backend server.");
+    showAlert("Cannot connect to the server. Please try again.");
   }
 }
 

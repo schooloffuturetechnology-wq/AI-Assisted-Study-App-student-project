@@ -7,12 +7,17 @@ dotenv.config();
 let memoryServer;
 
 async function connectDB() {
-  const useMemoryDB = process.env.USE_MEMORY_DB === "false";
+  const useMemoryDB = process.env.USE_MEMORY_DB === "true";
+  const isProduction = process.env.NODE_ENV === "production";
 
   if (useMemoryDB) {
+    if (isProduction) {
+      throw new Error("USE_MEMORY_DB=true is not allowed in production.");
+    }
+
     memoryServer = await MongoMemoryServer.create();
     await mongoose.connect(memoryServer.getUri());
-    console.log("Connected to in-memory MongoDB");
+    console.log("[db] Connected to in-memory MongoDB");
     return;
   }
 
@@ -22,7 +27,7 @@ async function connectDB() {
   }
 
   await mongoose.connect(mongoURI);
-  console.log("Connected to MongoDB");
+  console.log(`[db] Connected to MongoDB Atlas/database: ${mongoose.connection.name}`);
 }
 
 module.exports = connectDB;

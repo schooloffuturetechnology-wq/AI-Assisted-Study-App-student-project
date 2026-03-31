@@ -12,6 +12,14 @@ function logout() {
   redirectToLogin();
 }
 
+async function parseJsonResponse(response) {
+  try {
+    return await response.json();
+  } catch (error) {
+    return {};
+  }
+}
+
 function createHistoryCard(item) {
   return `
     <div class="col-12">
@@ -49,7 +57,12 @@ async function loadHistory() {
       }
     });
 
-    const result = await response.json();
+    const result = await parseJsonResponse(response);
+
+    if (response.status === 401) {
+      logout();
+      return;
+    }
 
     if (!response.ok) {
       historyList.innerHTML = `
@@ -73,7 +86,7 @@ async function loadHistory() {
   } catch (error) {
     historyList.innerHTML = `
       <div class="col-12">
-        <div class="alert alert-danger">Cannot connect to the backend server.</div>
+        <div class="alert alert-danger">Cannot connect to the server.</div>
       </div>
     `;
   }
