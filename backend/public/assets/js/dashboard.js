@@ -1,5 +1,3 @@
-const RESOURCE_STORAGE_KEY = "studyResources";
-
 function getToken() {
   return localStorage.getItem("token");
 }
@@ -28,23 +26,7 @@ async function parseJsonResponse(response) {
   }
 }
 
-function getStoredResources() {
-  const raw = localStorage.getItem(RESOURCE_STORAGE_KEY);
-  if (!raw) return [];
-
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    return [];
-  }
-}
-
-function saveResources(resources) {
-  localStorage.setItem(RESOURCE_STORAGE_KEY, JSON.stringify(resources));
-}
-
-let resources = getStoredResources();
+let resources = [];
 
 function normalizeValue(value) {
   return value.trim().replace(/\s+/g, " ");
@@ -265,11 +247,11 @@ function populateResourcePromptSelect() {
   resources.forEach((resource) => {
     select.insertAdjacentHTML(
       "beforeend",
-      `<option value="${resource.id}">${resource.category} / ${resource.subcategory} / ${resource.title}</option>`
+      `<option value="${resource._id}">${resource.category} / ${resource.subcategory} / ${resource.title}</option>`
     );
   });
 
-  if (resources.some((resource) => resource.id === previous)) {
+  if (resources.some((resource) => resource._id === previous)) {
     select.value = previous;
   }
 }
@@ -305,10 +287,10 @@ function buildResourceCard(resource) {
       }
       <div class="resource-actions">
         ${actionButton}
-        <button class="btn btn-sm btn-outline-primary" type="button" data-study-resource="${resource.id}">
+        <button class="btn btn-sm btn-outline-primary" type="button" data-study-resource="${resource._id}">
           Study with AI
         </button>
-        <button class="btn btn-sm btn-outline-danger" type="button" data-delete-resource="${resource.id}">
+        <button class="btn btn-sm btn-outline-danger" type="button" data-delete-resource="${resource._id}">
           Delete
         </button>
       </div>
@@ -368,16 +350,43 @@ function buildQuestionFromResource(resource) {
 }
 
 function fillAiPromptFromResource(resourceId) {
-  const resource = resources.find((item) => item.id === resourceId);
+  const resource = resources.find((item) => item._id === resourceId);
   if (!resource) return;
 
   document.getElementById("subject").value = resource.category;
   document.getElementById("question").value = buildQuestionFromResource(resource);
-  document.getElementById("resourcePromptSelect").value = resource.id;
+  document.getElementById("resourcePromptSelect").value = resource._id;
   switchPanel("aiPanel");
 }
 
-function handleResourceSubmit(event) {
+async function loadResources() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/study/resources`, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`
+      }
+    });
+
+    const result = await parseJsonResponse(response);
+
+    if (response.status === 401) {
+      logout();
+      return;
+    }
+
+    if (!response.ok) {
+      showAlert(result.message || "Could not load study resources.");
+      return;
+    }
+
+    resources = Array.isArray(result.data) ? result.data : [];
+    refreshResourceUI();
+  } catch (error) {
+    showAlert("Could not load study resources from the server.");
+  }
+}
+
+async function handleResourceSubmit(event) {
   event.preventDefault();
 
   const category = normalizeValue(document.getElementById("resourceCategory").value);
@@ -387,26 +396,48 @@ function handleResourceSubmit(event) {
   const url = normalizeValue(document.getElementById("resourceUrl").value);
   const description = normalizeValue(document.getElementById("resourceDescription").value);
 
-  const resource = {
-    id: `resource-${Date.now()}`,
+  const payload = {
     category,
     subcategory,
     title,
     type,
     url,
-    description,
-    createdAt: new Date().toISOString()
+    description
   };
 
-  resources.unshift(resource);
-  saveResources(resources);
-  refreshResourceUI();
-  document.getElementById("resourceForm").reset();
-  showAlert("Resource saved successfully.", "success");
-  switchPanel("resourcesPanel");
+  try {
+    const response = await fetch(`${API_BASE_URL}/study/resources`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await parseJsonResponse(response);
+
+    if (response.status === 401) {
+      logout();
+      return;
+    }
+
+    if (!response.ok) {
+      showAlert(result.message || "Could not save the resource.");
+      return;
+    }
+
+    resources.unshift(result.data);
+    refreshResourceUI();
+    document.getElementById("resourceForm").reset();
+    showAlert("Resource saved successfully.", "success");
+    switchPanel("resourcesPanel");
+  } catch (error) {
+    showAlert("Could not save the resource. Please try again.");
+  }
 }
 
-function handleResourceGridClick(event) {
+async function handleResourceGridClick(event) {
   const studyButton = event.target.closest("[data-study-resource]");
   if (studyButton) {
     fillAiPromptFromResource(studyButton.dataset.studyResource);
@@ -415,10 +446,35 @@ function handleResourceGridClick(event) {
 
   const deleteButton = event.target.closest("[data-delete-resource]");
   if (deleteButton) {
-    resources = resources.filter((resource) => resource.id !== deleteButton.dataset.deleteResource);
-    saveResources(resources);
-    refreshResourceUI();
-    showAlert("Resource deleted.", "success");
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/study/resources/${deleteButton.dataset.deleteResource}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${getToken()}`
+          }
+        }
+      );
+
+      const result = await parseJsonResponse(response);
+
+      if (response.status === 401) {
+        logout();
+        return;
+      }
+
+      if (!response.ok) {
+        showAlert(result.message || "Could not delete the resource.");
+        return;
+      }
+
+      resources = resources.filter((resource) => resource._id !== deleteButton.dataset.deleteResource);
+      refreshResourceUI();
+      showAlert("Resource deleted.", "success");
+    } catch (error) {
+      showAlert("Could not delete the resource. Please try again.");
+    }
   }
 }
 
@@ -493,7 +549,7 @@ function logout() {
 }
 
 setupPage();
-refreshResourceUI();
+loadResources();
 
 document.querySelectorAll(".quick-nav-btn").forEach((button) => {
   button.addEventListener("click", () => switchPanel(button.dataset.panelTarget));
